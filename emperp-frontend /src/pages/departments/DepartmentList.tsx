@@ -52,7 +52,7 @@ export default function DepartmentList() {
             <TableRow>
               <TableCell sx={{ fontWeight: "bold" }}>ID</TableCell>
               <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }}>Capacity</TableCell>
+              <TableCell sx={{ fontWeight: "bold" }}>Strength / Capacity</TableCell>
               <TableCell sx={{ fontWeight: "bold" }} align="right">
                 Actions
               </TableCell>
@@ -63,7 +63,9 @@ export default function DepartmentList() {
               <TableRow key={d.department_id} hover>
                 <TableCell>{d.department_id}</TableCell>
                 <TableCell sx={{ fontWeight: 500 }}>{d.name}</TableCell>
-                <TableCell>{d.capacity}</TableCell>
+                <TableCell>
+                  {d.strength} / {d.capacity}
+                </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Edit">
                     <IconButton color="primary" href={`/departments/${d.department_id}`}>

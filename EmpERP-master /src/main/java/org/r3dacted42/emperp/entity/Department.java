@@ -13,7 +13,6 @@ import java.util.List;
 @Table(name = "department")
 public class Department {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "department_id")
     private Long departmentId;
 
@@ -23,6 +22,6 @@ public class Department {
     @Column(nullable = false)
     private Long capacity;
 
-    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "department")
     List<Employee> employees;
 }

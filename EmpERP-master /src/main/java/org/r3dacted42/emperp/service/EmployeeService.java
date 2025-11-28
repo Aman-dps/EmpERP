@@ -6,6 +6,8 @@ import org.r3dacted42.emperp.dto.EmployeeRequest;
 import org.r3dacted42.emperp.dto.EmployeeResponse;
 import org.r3dacted42.emperp.entity.Department;
 import org.r3dacted42.emperp.entity.Employee;
+import org.r3dacted42.emperp.entity.EmployeeSalary;
+
 import org.r3dacted42.emperp.mapper.EmployeeMapper;
 import org.r3dacted42.emperp.repository.DepartmentRepository;
 import org.r3dacted42.emperp.repository.EmployeeRepository;
@@ -27,6 +29,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
     private final DepartmentRepository departmentRepository;
+    private final org.r3dacted42.emperp.repository.EmployeeSalaryRepository employeeSalaryRepository;
 
     @Value("${images.storage.path}/emp_photos/")
     public String imageStoragePath;
@@ -36,9 +39,13 @@ public class EmployeeService {
     }
 
     public Object createEmployee(EmployeeRequest request) {
-        if (employeeRepository.existsByEmployeeId(request.employeeId())) {
+        String employeeId = request.employeeId();
+        if (employeeId == null || employeeId.trim().isEmpty()) {
+            employeeId = generateNextEmployeeId();
+        } else if (employeeRepository.existsByEmployeeId(request.employeeId())) {
             return "employee id taken";
         }
+
         Department department = departmentRepository.findById(request.departmentId()).orElse(null);
         if (department == null) {
             return "department not found";
@@ -47,9 +54,29 @@ public class EmployeeService {
             return "department capacity full";
         }
         Employee employee = employeeMapper.toEntity(request);
+        employee.setEmployeeId(employeeId);
         employee.setDepartment(department);
         employee.setPhotographPath(null);
         return employeeMapper.toResponse(employeeRepository.save(employee));
+    }
+
+    private String generateNextEmployeeId() {
+        List<String> ids = employeeRepository.findAllEmployeeIds();
+        List<Integer> numericIds = ids.stream()
+                .filter(id -> id.matches("\\d+"))
+                .map(Integer::parseInt)
+                .sorted()
+                .toList();
+
+        int nextId = 1;
+        for (int id : numericIds) {
+            if (id == nextId) {
+                nextId++;
+            } else if (id > nextId) {
+                break;
+            }
+        }
+        return String.valueOf(nextId);
     }
 
     public List<EmployeeResponse> getAllEmployees(Long department_id) {
@@ -63,15 +90,21 @@ public class EmployeeService {
         return employeeRepository.findAll().stream().map(employeeMapper::toResponse).toList();
     }
 
-    public EmployeeResponse getEmployeeByEmployeeId(String employeeId) {
+    public EmployeeResponse getEmployeeById(String employeeId) {
         return employeeRepository.findByEmployeeId(employeeId).map(employeeMapper::toResponse).orElse(null);
+    }
+
+    public EmployeeResponse getEmployeeById(Long id) {
+        return employeeRepository.findById(id).map(employeeMapper::toResponse).orElse(null);
     }
 
     public Path getEmployeePhotoPath(String employeeId) {
         Employee employee = employeeRepository.findByEmployeeId(employeeId).orElse(null);
-        if (employee == null || employee.getPhotographPath() == null) return null;
+        if (employee == null || employee.getPhotographPath() == null)
+            return null;
         Path filePath = Paths.get(imageStoragePath, employee.getPhotographPath());
-        if (!Files.exists(filePath)) return null;
+        if (!Files.exists(filePath))
+            return null;
         return filePath;
     }
 
@@ -88,12 +121,14 @@ public class EmployeeService {
         if (department == null) {
             return "department not found";
         }
-        if (!Objects.equals(Objects.requireNonNull(employee).getDepartment().getDepartmentId(), department.getDepartmentId())
+        if (!Objects.equals(Objects.requireNonNull(employee).getDepartment().getDepartmentId(),
+                department.getDepartmentId())
                 && department.getCapacity() <= departmentRepository.getEmployeeCount(request.departmentId())) {
             return "department capacity full";
         }
         Employee updatedEmployee = employeeMapper.toEntity(request);
         updatedEmployee.setId(id);
+        updatedEmployee.setEmployeeId(employee.getEmployeeId()); // Preserve existing Employee ID
         updatedEmployee.setDepartment(department);
         updatedEmployee.setPhotographPath(Objects.requireNonNull(employee).getPhotographPath());
         return employeeMapper.toResponse(employeeRepository.save(updatedEmployee));
@@ -117,7 +152,8 @@ public class EmployeeService {
         String currentFileName = Objects.requireNonNull(employee).getPhotographPath();
         if (currentFileName != null) {
             Path filePath = Paths.get(imageStoragePath, currentFileName);
-            if (Files.exists(filePath)) Files.delete(filePath);
+            if (Files.exists(filePath))
+                Files.delete(filePath);
         }
         Pair<String, Boolean> res;
         System.out.println(photo);
@@ -132,16 +168,39 @@ public class EmployeeService {
         return res;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public String deleteEmployee(long employeeId) throws IOException {
+        System.out.println("Deleting employee with ID: " + employeeId);
         if (!employeeRepository.existsById(employeeId)) {
+            System.out.println("Employee not found");
             return null;
         }
         Employee employee = Objects.requireNonNull(employeeRepository.findById(employeeId).orElse(null));
-        if (employee.getPhotographPath() != null) {
-            Path filePath = Paths.get(imageStoragePath, employee.getPhotographPath());
-            if (Files.exists(filePath)) Files.delete(filePath);
+
+        try {
+            // Delete salaries first
+            System.out.println("Fetching salaries for employee...");
+            List<EmployeeSalary> salaries = employeeSalaryRepository
+                    .findByEmployee_EmployeeIdOrderByPaymentDateDesc(employee.getEmployeeId());
+            System.out.println("Found " + salaries.size() + " salaries. Deleting...");
+
+            employeeSalaryRepository.deleteAll(salaries);
+            employeeSalaryRepository.flush();
+            System.out.println("Salaries deleted and flushed.");
+
+            if (employee.getPhotographPath() != null) {
+                Path filePath = Paths.get(imageStoragePath, employee.getPhotographPath());
+                if (Files.exists(filePath))
+                    Files.delete(filePath);
+            }
+
+            employeeRepository.deleteById(employeeId);
+            System.out.println("Employee deleted from DB.");
+            return "employee deleted";
+        } catch (Exception e) {
+            System.err.println("Error deleting employee: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-        employeeRepository.deleteById(employeeId);
-        return "employee deleted";
     }
 }

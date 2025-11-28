@@ -22,6 +22,10 @@ public class OAuth2LoginFailureHandler extends SimpleUrlAuthenticationFailureHan
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException exception) throws IOException, ServletException {
+        System.out.println("OAuth2 Login Failed");
+        System.out.println("Exception: " + exception.getMessage());
+        exception.printStackTrace();
+
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login?error=true")
                 .build().toUriString();
         getRedirectStrategy().sendRedirect(request, response, targetUrl);

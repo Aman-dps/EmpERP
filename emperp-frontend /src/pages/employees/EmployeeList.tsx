@@ -113,8 +113,13 @@ export default function EmployeeList() {
                         color="error"
                         onClick={async () => {
                           if (confirm("Are you sure?")) {
-                            await deleteEmployee(e.id);
-                            load();
+                            try {
+                              await deleteEmployee(e.id);
+                              load();
+                            } catch (err) {
+                              alert("Failed to delete employee. Please try again.");
+                              console.error(err);
+                            }
                           }
                         }}
                       >

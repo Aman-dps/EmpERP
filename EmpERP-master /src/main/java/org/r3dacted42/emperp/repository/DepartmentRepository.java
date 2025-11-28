@@ -8,4 +8,9 @@ import org.springframework.data.repository.query.Param;
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
     @Query("SELECT COUNT(e) FROM Department d, Employee e WHERE d.departmentId = e.department.departmentId AND d.departmentId = :id")
     Long getEmployeeCount(@Param("id") Long departmentId);
+
+    @Query("SELECT d.departmentId FROM Department d ORDER BY d.departmentId ASC")
+    java.util.List<Long> findAllDepartmentIds();
+
+    java.util.Optional<Department> findByName(String name);
 }

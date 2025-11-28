@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createEmployee } from "../../api/employee.api";
 import { getDepartments } from "../../api/department.api";
-import { Button, TextField, Container, MenuItem } from "@mui/material";
+import { Button, TextField, Container, MenuItem, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 export default function EmployeeCreate() {
@@ -9,13 +9,13 @@ export default function EmployeeCreate() {
 
   const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState({
-    employee_id: "",
     first_name: "",
     last_name: "",
     email: "",
     title: "",
     department_id: "",
   });
+  const [error, setError] = useState("");
 
   const loadDepartments = async () => {
     const res = await getDepartments();
@@ -27,21 +27,29 @@ export default function EmployeeCreate() {
   }, []);
 
   const save = async () => {
-    await createEmployee({
-      employee_id: form.employee_id,
-      first_name: form.first_name,
-      last_name: form.last_name,
-      email: form.email,
-      title: form.title,
-      department_id: Number(form.department_id),
-    });
+    try {
+      await createEmployee({
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        title: form.title,
+        department_id: Number(form.department_id),
+      });
 
-    nav("/employees");
+      nav("/employees");
+    } catch (e: any) {
+      if (e.response && e.response.data === "department capacity full") {
+        setError("Department capacity is full. Please choose another department.");
+      } else {
+        setError("Failed to create employee.");
+      }
+    }
   };
 
   return (
     <Container sx={{ mt: 3 }}>
       <h2>Add Employee</h2>
+      {error && <Alert severity="error">{error}</Alert>}
 
       {Object.keys(form).map((key) =>
         key === "department_id" ? (

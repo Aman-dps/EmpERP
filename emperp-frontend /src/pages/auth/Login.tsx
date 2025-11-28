@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Paper, TextField, Button, Typography, Divider, InputAdornment, IconButton, Alert } from "@mui/material";
 import { loginApi } from "../../api/auth.api";
 import { useAuthStore } from "../../store/auth.store";
@@ -14,7 +14,14 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const setToken = useAuthStore((s) => s.setToken);
+  const token = useAuthStore((s) => s.token);
   const nav = useNavigate();
+
+  useEffect(() => {
+    if (token) {
+      nav("/employees");
+    }
+  }, [token, nav]);
 
   const login = async () => {
     setError("");

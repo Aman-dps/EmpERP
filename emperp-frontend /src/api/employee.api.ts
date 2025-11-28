@@ -23,3 +23,5 @@ export const uploadPhoto = (id: number, photo: File) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
+
+

@@ -27,16 +27,20 @@ public class RequestInterceptor implements HandlerInterceptor {
         }
 
         String authorizationHeader = request.getHeader("Authorization");
+        System.out.println("Interceptor: Processing " + request.getMethod() + " " + request.getRequestURI());
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            System.out.println("Interceptor: Missing/Invalid Auth Header");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
         String token = authorizationHeader.substring(7); // Extract token from "Bearer {token}"
         String username = jwtService.extractUsername(token);
+        System.out.println("Interceptor: User " + username);
 
         if (username == null || !jwtService.isTokenValid(token, username)) {
+            System.out.println("Interceptor: Invalid Token");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }

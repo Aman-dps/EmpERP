@@ -8,5 +8,9 @@ import java.util.Optional;
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     boolean existsByEmployeeId(@Param("id") String id);
+
     Optional<Employee> findByEmployeeId(@Param("id") String id);
+
+    @org.springframework.data.jpa.repository.Query("SELECT e.employeeId FROM Employee e")
+    java.util.List<String> findAllEmployeeIds();
 }

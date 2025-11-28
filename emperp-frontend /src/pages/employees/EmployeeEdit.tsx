@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { updateEmployee } from "../../api/employee.api";
 import { getDepartments } from "../../api/department.api";
 import axios from "../../api/axios";
-import { Button, TextField, Container, MenuItem } from "@mui/material";
+import { Button, TextField, Container, MenuItem, Alert } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function EmployeeEdit() {
@@ -19,6 +19,7 @@ export default function EmployeeEdit() {
     title: "",
     department_id: "",
   });
+  const [error, setError] = useState("");
 
   // load employee data
   const load = async () => {
@@ -46,17 +47,26 @@ export default function EmployeeEdit() {
   }, []);
 
   const save = async () => {
-    await updateEmployee(Number(id), {
-      ...form,
-      department_id: Number(form.department_id),
-    });
+    try {
+      await updateEmployee(Number(id), {
+        ...form,
+        department_id: Number(form.department_id),
+      });
 
-    nav("/employees");
+      nav("/employees");
+    } catch (e: any) {
+      if (e.response && e.response.data === "department capacity full") {
+        setError("Department capacity is full. Please choose another department.");
+      } else {
+        setError("Failed to update employee.");
+      }
+    }
   };
 
   return (
     <Container sx={{ mt: 3 }}>
       <h2>Edit Employee</h2>
+      {error && <Alert severity="error">{error}</Alert>}
 
       {Object.keys(form).map((key) =>
         key === "department_id" ? (
@@ -83,6 +93,7 @@ export default function EmployeeEdit() {
             label={key.replace("_", " ")}
             margin="normal"
             value={form[key as keyof typeof form]}
+            disabled={key === "employee_id"}
             onChange={(e) =>
               setForm({ ...form, [key]: e.target.value })
             }

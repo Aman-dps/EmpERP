@@ -48,7 +48,8 @@ CREATE TABLE `employee_salary_seq` (
 CREATE TABLE `user_account` (
   `id` bigint(20) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `username` varchar(255) NOT NULL
+  `username` varchar(255) NOT NULL,
+  `active` bit(1) NOT NULL
 );
 
 -- create sequence table for user_account
